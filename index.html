@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecallRocket — MemoryMint Marathon</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-wrap">
+      <span class="rocket-emblem">🚀</span>
+      <div>
+        <h1>RecallRocket</h1>
+        <p class="tagline">MemoryMint Marathon · Spaced Repetition</p>
+      </div>
+    </div>
+
+    <nav class="tab-bar" role="tablist">
+      <button class="tab-item active" data-tab="arena">Study Arena</button>
+      <button class="tab-item" data-tab="decay">Retention Curve</button>
+      <button class="tab-item" data-tab="ranks">Cohort Leaderboard</button>
+    </nav>
+
+    <div class="header-right">
+      <div class="streak-box" title="Daily study streak (UTC)">
+        <span>🔥 <strong id="streakNum">0</strong>d</span>
+        <span class="streak-badge" id="streakTier">Starter</span>
+      </div>
+      <button id="themeSwitch" class="theme-btn" title="Toggle Dark/Light Theme">🌓</button>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <!-- TAB 1: STUDY ARENA -->
+    <section id="tab-arena" class="tab-view active">
+      <div class="deck-toolbar">
+        <div class="deck-left">
+          <label for="deckMenu">Deck:</label>
+          <select id="deckMenu"></select>
+          <span id="duePill" class="due-pill">0 due</span>
+        </div>
+
+        <div class="deck-right">
+          <button id="btnAddDeck" class="action-btn subtle">+ Deck</button>
+          <button id="btnAddCard" class="action-btn primary">+ Card</button>
+          <button id="btnExport" class="action-btn subtle">⬇ CSV</button>
+          <label class="action-btn subtle file-btn">
+            ⬆ CSV
+            <input type="file" id="csvFileInput" accept=".csv" hidden />
+          </label>
+        </div>
+      </div>
+
+      <!-- FLASHCARD ARENA -->
+      <div id="arenaBox" class="arena-box">
+        <div class="top-stats">
+          <span id="queuePos">Card 1 of 10</span>
+          <span id="sm2Readout">EF: 2.50 · Interval: 0d · Reps: 0</span>
+        </div>
+
+        <div class="progress-track">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+
+        <div class="card-stage" id="cardStage">
+          <div class="card-3d" id="card3d">
+            <div class="card-side front">
+              <div class="side-header">
+                <span class="side-badge">QUESTION</span>
+                <button type="button" class="speak-btn" id="speakQ" title="Read aloud">🔊</button>
+              </div>
+              <div id="qText" class="card-copy"></div>
+              <div class="side-footer">Click card or press <kbd>Space</kbd> to flip</div>
+            </div>
+
+            <div class="card-side back">
+              <div class="side-header">
+                <span class="side-badge answer-badge">ANSWER</span>
+                <button type="button" class="speak-btn" id="speakA" title="Read aloud">🔊</button>
+              </div>
+              <div id="aText" class="card-copy"></div>
+              <div class="side-footer">Grade recall (<kbd>1</kbd>–<kbd>5</kbd>) to schedule next review</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="gradePanel" class="grade-panel hidden">
+          <div class="grade-buttons">
+            <button class="grade-btn gb-1" data-grade="1">
+              <strong>1 · Blackout</strong>
+              <small>Reset · 1d</small>
+            </button>
+            <button class="grade-btn gb-2" data-grade="2">
+              <strong>2 · Hard</strong>
+              <small>Reset · 1d</small>
+            </button>
+            <button class="grade-btn gb-3" data-grade="3">
+              <strong>3 · Good</strong>
+              <small id="nextInt-3">1d</small>
+            </button>
+            <button class="grade-btn gb-4" data-grade="4">
+              <strong>4 · Easy</strong>
+              <small id="nextInt-4">1d</small>
+            </button>
+            <button class="grade-btn gb-5" data-grade="5">
+              <strong>5 · Perfect</strong>
+              <small id="nextInt-5">1d</small>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SESSION FINISHED STATE -->
+      <div id="finishedBox" class="finished-box hidden">
+        <div class="celebrate">🎉</div>
+        <h2>Queue Complete!</h2>
+        <p>All due cards in this deck are scheduled with SM-2 intervals.</p>
+        <div class="finished-actions">
+          <button id="practiceAllBtn" class="action-btn primary">Practice All Cards</button>
+          <button id="openRanksBtn" class="action-btn subtle">View Leaderboard</button>
+        </div>
+      </div>
+
+      <!-- CARDS IN DECK -->
+      <div class="deck-cards-block">
+        <h3>Cards in Active Deck</h3>
+        <div id="deckCardsList" class="deck-cards-list"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: RETENTION DECAY CURVE -->
+    <section id="tab-decay" class="tab-view">
+      <div class="surface-box">
+        <div class="box-head">
+          <div>
+            <h2>Memory Retention Decay Curve</h2>
+            <p class="muted">Projected retention $R = e^{-t/S}$ across SM-2 spaced review intervals</p>
+          </div>
+          <div class="metric-chip">Average EF: <strong id="avgEfVal">2.50</strong></div>
+        </div>
+        <canvas id="decayChart" width="800" height="330"></canvas>
+      </div>
+    </section>
+
+    <!-- TAB 3: COHORT LEADERBOARD -->
+    <section id="tab-ranks" class="tab-view">
+      <div class="surface-box">
+        <div class="box-head">
+          <div>
+            <h2>Cohort Study Leaderboard</h2>
+            <p class="muted">Points = (Reviews × 10) + (Streak × 25)</p>
+          </div>
+          <div class="metric-chip">Your Rank: <strong id="myRankVal">#1</strong></div>
+        </div>
+        <table class="ranks-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Learner</th>
+              <th>Badge</th>
+              <th>Streak</th>
+              <th>Reviews</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="ranksBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: NEW DECK -->
+  <div id="deckModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Create New Deck</h3>
+      <input type="text" id="deckNameField" placeholder="e.g., Operating Systems, Graphs..." />
+      <div class="modal-footer">
+        <button id="cancelDeckBtn" class="action-btn subtle">Cancel</button>
+        <button id="confirmDeckBtn" class="action-btn primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NEW CARD -->
+  <div id="cardModal" class="modal-backdrop hidden">
+    <div class="modal-card wide">
+      <h3>Add Flashcard (Supports **bold** and `inline code`)</h3>
+      <div class="editor-grid">
+        <div>
+          <label>Question</label>
+          <textarea id="qField" rows="3" placeholder="Enter question..."></textarea>
+          <label>Answer</label>
+          <textarea id="aField" rows="3" placeholder="Enter answer..."></textarea>
+        </div>
+        <div class="preview-panel">
+          <div class="preview-title">LIVE PREVIEW</div>
+          <div id="qLive" class="preview-text">Question preview...</div>
+          <hr />
+          <div id="aLive" class="preview-text">Answer preview...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelCardBtn" class="action-btn subtle">Cancel</button>
+        <button id="confirmCardBtn" class="action-btn primary">Save Card</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
